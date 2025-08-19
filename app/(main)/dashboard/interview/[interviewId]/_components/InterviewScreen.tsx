@@ -42,7 +42,7 @@ function InterviewScreen({ interviewData }: { interviewData: InterviewData }) {
   const [recordedAnswers, setRecordedAnswers] = useState<AnswerRecord[]>([]);
   const [listening, setListening] = useState(false);
   const [loading, setLoading] = useState(false);
-  const recognitionRef = useRef<SpeechRecognition | null>(null);
+  const recognitionRef = useRef<any>(null);
   const router = useRouter();
 
   useEffect(() => {
