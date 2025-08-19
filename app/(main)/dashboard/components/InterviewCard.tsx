@@ -40,7 +40,7 @@ function InterviewCard({ interview }: { interview: Interview }) {
             } else {
                 toast.error(result.error || "Failed to delete interview.");
             }
-        } catch (e) {
+        } catch {
             toast.error("An unexpected error occurred.");
         }
         setDeleteLoading(false);
