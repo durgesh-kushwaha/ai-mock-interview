@@ -2,16 +2,18 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { interviews } from '@/utils/schema';
 import { Button } from '@/components/ui/button';
-import { Mic, MicOff, Volume2, ArrowLeft } from 'lucide-react';
+import { Mic, MicOff, Volume2, ArrowLeft, Video } from 'lucide-react';
 import { toast } from 'sonner';
 import { submitFeedback } from '../../../_actions/feedback';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import Webcam from "react-webcam";
 
+// This declaration tells TypeScript about the SpeechRecognition constructors on the Window object.
 declare global {
   interface Window {
-    SpeechRecognition: any;
-    webkitSpeechRecognition: any;
+    SpeechRecognition: new () => SpeechRecognition;
+    webkitSpeechRecognition: new () => SpeechRecognition;
   }
 }
 
@@ -38,11 +40,14 @@ type InterviewData = typeof interviews.$inferSelect;
 function InterviewScreen({ interviewData }: { interviewData: InterviewData }) {
   const [questions, setQuestions] = useState<Question[]>([]);
   const [activeQuestionIndex, setActiveQuestionIndex] = useState(0);
-  const [userAnswer, setUserAnswer] = useState<string>('');
+  const [userAnswer, setUserAnswer] = useState('');
   const [recordedAnswers, setRecordedAnswers] = useState<AnswerRecord[]>([]);
   const [listening, setListening] = useState(false);
   const [loading, setLoading] = useState(false);
-  const recognitionRef = useRef<any>(null);
+  const [webcamEnabled, setWebcamEnabled] = useState(false);
+  
+  // Use the specific 'SpeechRecognition' type for the ref, removing 'any'.
+  const recognitionRef = useRef<SpeechRecognition | null>(null);
   const router = useRouter();
 
   useEffect(() => {
@@ -79,7 +84,11 @@ function InterviewScreen({ interviewData }: { interviewData: InterviewData }) {
         setUserAnswer(transcript);
       };
 
-      recognitionRef.current.onerror = (event: SpeechRecognitionErrorEvent) => { toast.error('Speech recognition error: ' + event.error); setListening(false); };
+      recognitionRef.current.onerror = (event: SpeechRecognitionErrorEvent) => { 
+          toast.error('Speech recognition error: ' + event.error); 
+          setListening(false); 
+      };
+
       recognitionRef.current.onend = () => { setListening(false); };
       recognitionRef.current.start();
     } else {
@@ -128,13 +137,29 @@ function InterviewScreen({ interviewData }: { interviewData: InterviewData }) {
 
       <div className='grid grid-cols-1 md:grid-cols-2 gap-10'>
         <div className='flex flex-col gap-4'>
-            <h2 className='font-bold text-lg'>Questions ({activeQuestionIndex + 1}/{questions.length})</h2>
-            <div className='p-4 border rounded-lg space-y-4 h-full'>
-                {questions.map((q, index) => (
-                    <div key={index} className={`p-2 rounded-md cursor-pointer ${activeQuestionIndex === index ? 'bg-blue-100 text-blue-700' : 'bg-gray-100'}`}>
-                        {index + 1}. {q.question}
-                    </div>
-                ))}
+            <div className='bg-gray-800 rounded-lg p-4 border flex items-center justify-center h-[300px]'>
+              {webcamEnabled ? (
+                  <Webcam
+                    mirrored={true}
+                    style={{ height: '100%', width: '100%', objectFit: 'contain' }}
+                  />
+              ) : (
+                <div className='flex flex-col items-center gap-3 text-white'>
+                  <Video className='h-16 w-16' />
+                  <Button onClick={() => setWebcamEnabled(true)}>Enable Camera</Button>
+                </div>
+              )}
+            </div>
+            
+            <div className='flex flex-col gap-4'>
+                <h2 className='font-bold text-lg'>Questions ({activeQuestionIndex + 1}/{questions.length})</h2>
+                <div className='p-4 border rounded-lg space-y-4 h-full'>
+                    {questions.map((q, index) => (
+                        <div key={index} className={`p-2 rounded-md cursor-pointer ${activeQuestionIndex === index ? 'bg-blue-100 text-blue-700' : 'bg-gray-100'}`}>
+                            {index + 1}. {q.question}
+                        </div>
+                    ))}
+                </div>
             </div>
         </div>
 
