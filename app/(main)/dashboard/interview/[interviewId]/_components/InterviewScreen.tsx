@@ -38,7 +38,7 @@ type InterviewData = typeof interviews.$inferSelect;
 function InterviewScreen({ interviewData }: { interviewData: InterviewData }) {
   const [questions, setQuestions] = useState<Question[]>([]);
   const [activeQuestionIndex, setActiveQuestionIndex] = useState(0);
-  const [userAnswer, setUserAnswer] = useState('');
+  const [userAnswer, setUserAnswer] = useState<string>('');
   const [recordedAnswers, setRecordedAnswers] = useState<AnswerRecord[]>([]);
   const [listening, setListening] = useState(false);
   const [loading, setLoading] = useState(false);
