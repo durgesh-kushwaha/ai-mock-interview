@@ -15,6 +15,14 @@ declare global {
   }
 }
 
+interface SpeechRecognitionEvent extends Event {
+  results: SpeechRecognitionResultList;
+}
+
+interface SpeechRecognitionErrorEvent extends Event {
+  error: string;
+}
+
 type Question = {
   question: string;
   answer: string;
@@ -34,7 +42,7 @@ function InterviewScreen({ interviewData }: { interviewData: InterviewData }) {
   const [recordedAnswers, setRecordedAnswers] = useState<AnswerRecord[]>([]);
   const [listening, setListening] = useState(false);
   const [loading, setLoading] = useState(false);
-  const recognitionRef = useRef<any>(null);
+  const recognitionRef = useRef<SpeechRecognition | null>(null);
   const router = useRouter();
 
   useEffect(() => {
@@ -65,11 +73,13 @@ function InterviewScreen({ interviewData }: { interviewData: InterviewData }) {
       recognitionRef.current.interimResults = true;
 
       recognitionRef.current.onstart = () => { setListening(true); setUserAnswer(''); };
-      recognitionRef.current.onresult = (event: any) => {
-        let transcript = Array.from(event.results).map((result: any) => result[0]).map(result => result.transcript).join('');
+      
+      recognitionRef.current.onresult = (event: SpeechRecognitionEvent) => {
+        const transcript = Array.from(event.results).map((result) => result[0]).map(result => result.transcript).join('');
         setUserAnswer(transcript);
       };
-      recognitionRef.current.onerror = (event: any) => { toast.error('Speech recognition error: ' + event.error); setListening(false); };
+
+      recognitionRef.current.onerror = (event: SpeechRecognitionErrorEvent) => { toast.error('Speech recognition error: ' + event.error); setListening(false); };
       recognitionRef.current.onend = () => { setListening(false); };
       recognitionRef.current.start();
     } else {
@@ -117,7 +127,6 @@ function InterviewScreen({ interviewData }: { interviewData: InterviewData }) {
       </div>
 
       <div className='grid grid-cols-1 md:grid-cols-2 gap-10'>
-        {}
         <div className='flex flex-col gap-4'>
             <h2 className='font-bold text-lg'>Questions ({activeQuestionIndex + 1}/{questions.length})</h2>
             <div className='p-4 border rounded-lg space-y-4 h-full'>
@@ -129,7 +138,6 @@ function InterviewScreen({ interviewData }: { interviewData: InterviewData }) {
             </div>
         </div>
 
-        {}
         <div className='flex flex-col items-center justify-center gap-6'>
           <div className='flex items-center gap-4 text-center'>
             <Button onClick={speakQuestion} size="icon" variant="outline" title="Speak/Mute Question"> <Volume2 /> </Button>

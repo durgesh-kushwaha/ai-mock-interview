@@ -1,7 +1,6 @@
 "use client";
 import {
   SignInButton,
-  SignUpButton,
   SignedIn,
   SignedOut,
   UserButton,
@@ -19,7 +18,6 @@ export default function Header() {
           <SignInButton />
         </SignedOut>
         <SignedIn>
-          {}
           <nav className="hidden md:flex items-center gap-6 text-sm font-medium">
             <Link href="/dashboard" className="hover:text-blue-600 transition-colors">Dashboard</Link>
             <Link href="/developer" className="hover:text-blue-600 transition-colors">Developer</Link>

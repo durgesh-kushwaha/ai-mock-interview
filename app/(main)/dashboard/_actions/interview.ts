@@ -92,3 +92,63 @@ export async function deleteInterview(mockId: string) {
         return { error: "Database error: Could not delete the interview." };
     }
 }
+
+export async function retakeInterview(mockId: string) {
+    const user = await currentUser();
+    if (!user) {
+        return { error: "User not authenticated" };
+    }
+
+    // 1. Find the original interview
+    const originalInterview = await db.select()
+        .from(interviews)
+        .where(eq(interviews.mockId, mockId));
+
+    if (!originalInterview.length) {
+        return { error: "Original interview not found." };
+    }
+
+    const { jobPosition, jobDesc, jobExperience } = originalInterview[0];
+
+    // 2. Generate new questions using the same prompt logic
+    const prompt = `
+        Job Position: ${jobPosition}
+        Job Description: ${jobDesc}
+        Years of Experience: ${jobExperience}
+
+        Based on the information above, please generate 5 fresh interview questions and answers in JSON format.
+        Each question and answer should be in a separate object within a JSON array.
+        The JSON should be an array of objects, where each object has a "question" key and an "answer" key.
+        Do not include any other text or markdown formatting outside of the JSON array.
+    `;
+
+    let jsonResponse;
+    try {
+        const result = await model.generateContent(prompt);
+        const response = await result.response;
+        jsonResponse = response.text().replace(/```json|```/g, "").trim();
+    } catch (error) {
+        console.error("Gemini API call failed for retake:", error);
+        return { error: "Failed to generate new interview questions." };
+    }
+
+    // 3. Create a new interview record
+    const newMockId = crypto.randomUUID();
+    try {
+        await db.insert(interviews).values({
+            mockId: newMockId,
+            jsonMockResp: jsonResponse,
+            jobPosition,
+            jobDesc,
+            jobExperience,
+            createdBy: user.primaryEmailAddress!.emailAddress,
+            createdAt: new Date().toISOString(),
+        });
+    } catch (error) {
+        console.error("Database insertion failed for retake:", error);
+        return { error: "Failed to save the new interview." };
+    }
+
+    // 4. Return the new ID so we can redirect
+    return { success: true, newMockId };
+}
