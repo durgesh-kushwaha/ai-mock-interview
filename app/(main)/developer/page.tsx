@@ -40,7 +40,7 @@ function DeveloperPage() {
                                 <h1 className='text-4xl font-bold text-gray-800'>{devDetails.name}</h1>
                                 <p className='text-blue-600 font-medium mt-1'>{devDetails.title}</p>
                                 
-                                {/* Social & Contact Links with Text */}
+                                {}
                                 <div className='flex flex-wrap justify-center sm:justify-start items-center gap-x-6 gap-y-2 mt-4'>
                                     <Link href={devDetails.github} target="_blank" className='flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors'>
                                         <Github size={20} /> GitHub
@@ -52,7 +52,7 @@ function DeveloperPage() {
                             </div>
                         </div>
 
-                        {/* Contact Info Section */}
+                        {}
                         <div className='mt-8 pt-6 border-t'>
                              <div className='space-y-4'>
                                 <a href={`mailto:${devDetails.email}`} className='flex items-center gap-3 text-gray-700 hover:text-red-600 transition-colors'>
@@ -66,7 +66,7 @@ function DeveloperPage() {
                             </div>
                         </div>
 
-                        {/* Skills Section */}
+                        {}
                         <div className='mt-8'>
                             <h2 className='text-xl font-semibold text-gray-700 flex items-center gap-2'>
                                 <Code />

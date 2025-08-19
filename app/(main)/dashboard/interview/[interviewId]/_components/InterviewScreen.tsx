@@ -8,7 +8,6 @@ import { submitFeedback } from '../../../_actions/feedback';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 
-// Type definitions (add these at the top)
 declare global {
   interface Window {
     SpeechRecognition: any;
@@ -82,7 +81,6 @@ function InterviewScreen({ interviewData }: { interviewData: InterviewData }) {
     if (recognitionRef.current) {
       recognitionRef.current.stop();
       setListening(false);
-      // Save the final answer when recording stops
       setRecordedAnswers(prev => [...prev, {
         question: questions[activeQuestionIndex].question,
         userAns: userAnswer,
@@ -95,7 +93,6 @@ function InterviewScreen({ interviewData }: { interviewData: InterviewData }) {
       setActiveQuestionIndex(activeQuestionIndex + 1);
       setUserAnswer(''); 
     } else {
-      // End of interview - submit for feedback
       setLoading(true);
       const result = await submitFeedback(recordedAnswers, interviewData.mockId);
       setLoading(false);
@@ -120,7 +117,7 @@ function InterviewScreen({ interviewData }: { interviewData: InterviewData }) {
       </div>
 
       <div className='grid grid-cols-1 md:grid-cols-2 gap-10'>
-        {/* Question List */}
+        {}
         <div className='flex flex-col gap-4'>
             <h2 className='font-bold text-lg'>Questions ({activeQuestionIndex + 1}/{questions.length})</h2>
             <div className='p-4 border rounded-lg space-y-4 h-full'>
@@ -132,7 +129,7 @@ function InterviewScreen({ interviewData }: { interviewData: InterviewData }) {
             </div>
         </div>
 
-        {/* Main Interview Window */}
+        {}
         <div className='flex flex-col items-center justify-center gap-6'>
           <div className='flex items-center gap-4 text-center'>
             <Button onClick={speakQuestion} size="icon" variant="outline" title="Speak/Mute Question"> <Volume2 /> </Button>

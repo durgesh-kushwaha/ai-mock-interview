@@ -1,13 +1,12 @@
 "use client";
 
 import React from 'react';
-import { SignedIn, SignedOut } from '@clerk/nextjs'; // Corrected import path
+import { SignedIn, SignedOut } from '@clerk/nextjs';
 import AddNewInterview from "./AddNewInterview";
 import InterviewCard from "./InterviewCard";
 import { interviews } from '@/utils/schema';
 import { BrainCircuit, PenSquare, Rocket } from 'lucide-react';
 
-// Define the type for the interview list prop
 type Interview = typeof interviews.$inferSelect;
 
 function DashboardClient({ interviewList }: { interviewList: Interview[] }) {

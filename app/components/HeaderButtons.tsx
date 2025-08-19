@@ -1,10 +1,9 @@
-"use client"; // This directive marks it as a Client Component
+"use client"; 
 
 import { UserButton } from "@clerk/nextjs";
 import Link from "next/link";
 import React from "react";
 
-// We receive the userId as a prop from the parent Server Component
 const HeaderButtons = ({ userId }: { userId: string | null }) => {
   return (
     <div>

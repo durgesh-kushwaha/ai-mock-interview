@@ -1,4 +1,4 @@
-"use client"; // Note: This component is now a client component
+"use client";
 import {
   SignInButton,
   SignUpButton,
@@ -19,7 +19,7 @@ export default function Header() {
           <SignInButton />
         </SignedOut>
         <SignedIn>
-          {/* Add your new navigation links here */}
+          {}
           <nav className="hidden md:flex items-center gap-6 text-sm font-medium">
             <Link href="/dashboard" className="hover:text-blue-600 transition-colors">Dashboard</Link>
             <Link href="/developer" className="hover:text-blue-600 transition-colors">Developer</Link>

@@ -8,7 +8,6 @@ function MainLayout({
   children: React.ReactNode;
 }>) {
   return (
-    // Add a background color that will show through on pages
     <div className='bg-gray-50'>
       <Header />
       <main>

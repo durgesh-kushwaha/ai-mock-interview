@@ -34,16 +34,16 @@ function AddNewInterview() {
               Tell us more about your interview
             </DialogTitle>
             <DialogDescription>
-              Provide details about the job you're interviewing for. Our AI
+              Provide details about the job you&apos;re interviewing for. Our AI
               will generate questions based on your input.
             </DialogDescription>
           </DialogHeader>
 
           <form action={async (formData) => {
-              setLoading(true);
-              await generateInterview(formData);
-              setLoading(false);
-              setOpenDialog(false);
+            setLoading(true);
+            await generateInterview(formData);
+            setLoading(false);
+            setOpenDialog(false);
           }}>
             <div className="space-y-4">
               <div>
