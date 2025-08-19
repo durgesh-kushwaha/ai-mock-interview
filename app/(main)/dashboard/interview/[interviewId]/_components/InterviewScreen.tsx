@@ -2,11 +2,12 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { interviews } from '@/utils/schema';
 import { Button } from '@/components/ui/button';
-import { Mic, MicOff, Volume2, ArrowLeft } from 'lucide-react';
+import { Mic, MicOff, Volume2, ArrowLeft, Video } from 'lucide-react';
 import { toast } from 'sonner';
 import { submitFeedback } from '../../../_actions/feedback';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import Webcam from "react-webcam";
 
 declare global {
   interface Window {
@@ -42,7 +43,8 @@ function InterviewScreen({ interviewData }: { interviewData: InterviewData }) {
   const [recordedAnswers, setRecordedAnswers] = useState<AnswerRecord[]>([]);
   const [listening, setListening] = useState(false);
   const [loading, setLoading] = useState(false);
-
+  const [webcamEnabled, setWebcamEnabled] = useState(false);
+  
   const recognitionRef = useRef<SpeechRecognition | null>(null);
   const router = useRouter();
 
@@ -76,7 +78,7 @@ function InterviewScreen({ interviewData }: { interviewData: InterviewData }) {
       recognitionRef.current.onstart = () => { setListening(true); setUserAnswer(''); };
       
       recognitionRef.current.onresult = (event: SpeechRecognitionEvent) => {
-       
+      
         const transcript = Array.from(event.results).map((result) => result[0]).map(result => result.transcript).join('');
         setUserAnswer(transcript);
       };
@@ -134,6 +136,20 @@ function InterviewScreen({ interviewData }: { interviewData: InterviewData }) {
 
       <div className='grid grid-cols-1 md:grid-cols-2 gap-10'>
         <div className='flex flex-col gap-4'>
+            <div className='bg-gray-800 rounded-lg p-4 border flex items-center justify-center h-[300px]'>
+              {webcamEnabled ? (
+                  <Webcam
+                    mirrored={true}
+                    style={{ height: '100%', width: '100%', objectFit: 'contain' }}
+                  />
+              ) : (
+                <div className='flex flex-col items-center gap-3 text-white'>
+                  <Video className='h-16 w-16' />
+                  <Button onClick={() => setWebcamEnabled(true)}>Enable Camera</Button>
+                </div>
+              )}
+            </div>
+            
             <div className='p-4 border rounded-lg space-y-4 h-full'>
                 <h2 className='font-bold text-lg'>Questions ({activeQuestionIndex + 1}/{questions.length})</h2>
                 {questions.map((q, index) => (

@@ -70,5 +70,4 @@ function AddNewInterview() {
     </div>
   );
 }
-
 export default AddNewInterview;
