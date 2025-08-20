@@ -21,9 +21,9 @@ import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
 
 interface FeedbackPageProps {
-    params: {
+    params: Promise<{
         interviewId: string;
-    };
+    }>;
 }
 
 type ModelAnswer = {
@@ -33,7 +33,7 @@ type ModelAnswer = {
 
 async function FeedbackPage({ params }: FeedbackPageProps) {
   
-    const { interviewId } = params;
+    const { interviewId } = await params;
 
     const [interviewResult, feedbackResult] = await Promise.all([
         db.select().from(interviews).where(eq(interviews.mockId, interviewId)),

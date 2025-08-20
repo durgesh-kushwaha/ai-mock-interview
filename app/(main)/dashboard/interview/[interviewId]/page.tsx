@@ -8,16 +8,17 @@ import InterviewScreen from './_components/InterviewScreen'; // Correct path sta
 export const dynamic = 'force-dynamic';
 
 interface InterviewPageProps {
-  params: {
+  params: Promise<{
     interviewId: string;
-  };
+  }>;
 }
 
 async function InterviewPage({ params }: InterviewPageProps) {
+  const { interviewId } = await params;
   const result = await db
     .select()
     .from(interviews)
-    .where(eq(interviews.mockId, params.interviewId));
+    .where(eq(interviews.mockId, interviewId));
 
   if (!result || result.length === 0) {
     return notFound();
