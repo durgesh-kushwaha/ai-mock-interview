@@ -2,27 +2,11 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { interviews } from '@/utils/schema';
 import { Button } from '@/components/ui/button';
-import { Mic, MicOff, Volume2, ArrowLeft, Video } from 'lucide-react';
+import { Mic, MicOff, Volume2, ArrowLeft } from 'lucide-react';
 import { toast } from 'sonner';
 import { submitFeedback } from '../../../_actions/feedback';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import Webcam from "react-webcam";
-
-declare global {
-  interface Window {
-    SpeechRecognition: new () => SpeechRecognition;
-    webkitSpeechRecognition: new () => SpeechRecognition;
-  }
-}
-
-interface SpeechRecognitionEvent extends Event {
-  results: SpeechRecognitionResultList;
-}
-
-interface SpeechRecognitionErrorEvent extends Event {
-  error: string;
-}
 
 type Question = {
   question: string;
@@ -43,8 +27,6 @@ function InterviewScreen({ interviewData }: { interviewData: InterviewData }) {
   const [recordedAnswers, setRecordedAnswers] = useState<AnswerRecord[]>([]);
   const [listening, setListening] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [webcamEnabled, setWebcamEnabled] = useState(false);
-  
   const recognitionRef = useRef<SpeechRecognition | null>(null);
   const router = useRouter();
 
@@ -69,8 +51,8 @@ function InterviewScreen({ interviewData }: { interviewData: InterviewData }) {
   };
 
   const startListening = () => {
-    if ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window) {
-      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (SpeechRecognition) {
       recognitionRef.current = new SpeechRecognition();
       recognitionRef.current.continuous = true;
       recognitionRef.current.interimResults = true;
@@ -78,16 +60,11 @@ function InterviewScreen({ interviewData }: { interviewData: InterviewData }) {
       recognitionRef.current.onstart = () => { setListening(true); setUserAnswer(''); };
       
       recognitionRef.current.onresult = (event: SpeechRecognitionEvent) => {
-      
         const transcript = Array.from(event.results).map((result) => result[0]).map(result => result.transcript).join('');
         setUserAnswer(transcript);
       };
 
-      recognitionRef.current.onerror = (event: SpeechRecognitionErrorEvent) => { 
-          toast.error('Speech recognition error: ' + event.error); 
-          setListening(false); 
-      };
-
+      recognitionRef.current.onerror = (event: SpeechRecognitionErrorEvent) => { toast.error(`Speech recognition error: ${event.error}`); setListening(false); };
       recognitionRef.current.onend = () => { setListening(false); };
       recognitionRef.current.start();
     } else {
@@ -136,22 +113,8 @@ function InterviewScreen({ interviewData }: { interviewData: InterviewData }) {
 
       <div className='grid grid-cols-1 md:grid-cols-2 gap-10'>
         <div className='flex flex-col gap-4'>
-            <div className='bg-gray-800 rounded-lg p-4 border flex items-center justify-center h-[300px]'>
-              {webcamEnabled ? (
-                  <Webcam
-                    mirrored={true}
-                    style={{ height: '100%', width: '100%', objectFit: 'contain' }}
-                  />
-              ) : (
-                <div className='flex flex-col items-center gap-3 text-white'>
-                  <Video className='h-16 w-16' />
-                  <Button onClick={() => setWebcamEnabled(true)}>Enable Camera</Button>
-                </div>
-              )}
-            </div>
-            
+            <h2 className='font-bold text-lg'>Questions ({activeQuestionIndex + 1}/{questions.length})</h2>
             <div className='p-4 border rounded-lg space-y-4 h-full'>
-                <h2 className='font-bold text-lg'>Questions ({activeQuestionIndex + 1}/{questions.length})</h2>
                 {questions.map((q, index) => (
                     <div key={index} className={`p-2 rounded-md cursor-pointer ${activeQuestionIndex === index ? 'bg-blue-100 text-blue-700' : 'bg-gray-100'}`}>
                         {index + 1}. {q.question}

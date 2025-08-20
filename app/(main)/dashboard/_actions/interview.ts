@@ -99,7 +99,6 @@ export async function retakeInterview(mockId: string) {
         return { error: "User not authenticated" };
     }
 
-    // 1. Find the original interview
     const originalInterview = await db.select()
         .from(interviews)
         .where(eq(interviews.mockId, mockId));
@@ -110,7 +109,6 @@ export async function retakeInterview(mockId: string) {
 
     const { jobPosition, jobDesc, jobExperience } = originalInterview[0];
 
-    // 2. Generate new questions using the same prompt logic
     const prompt = `
         Job Position: ${jobPosition}
         Job Description: ${jobDesc}
@@ -132,7 +130,6 @@ export async function retakeInterview(mockId: string) {
         return { error: "Failed to generate new interview questions." };
     }
 
-    // 3. Create a new interview record
     const newMockId = crypto.randomUUID();
     try {
         await db.insert(interviews).values({
@@ -149,6 +146,5 @@ export async function retakeInterview(mockId: string) {
         return { error: "Failed to save the new interview." };
     }
 
-    // 4. Return the new ID so we can redirect
     return { success: true, newMockId };
 }

@@ -1,4 +1,5 @@
 "use client";
+
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -25,6 +26,7 @@ function AddNewInterview() {
       >
         <h2 className="font-bold text-lg text-center">+ Add New</h2>
       </div>
+
       <Dialog open={openDialog} onOpenChange={setOpenDialog}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
@@ -36,11 +38,12 @@ function AddNewInterview() {
               will generate questions based on your input.
             </DialogDescription>
           </DialogHeader>
+
           <form action={async (formData) => {
-              setLoading(true);
-              await generateInterview(formData);
-              setLoading(false);
-              setOpenDialog(false);
+            setLoading(true);
+            await generateInterview(formData);
+            setLoading(false);
+            setOpenDialog(false);
           }}>
             <div className="space-y-4">
               <div>
@@ -61,7 +64,13 @@ function AddNewInterview() {
                 Cancel
               </Button>
               <Button type="submit" disabled={loading}>
-                {loading ? (<><LoaderCircle className="animate-spin mr-2" /> Generating...</>) : ("Start Interview")}
+                {loading ? (
+                  <>
+                    <LoaderCircle className="animate-spin mr-2" /> Generating...
+                  </>
+                ) : (
+                  "Start Interview"
+                )}
               </Button>
             </div>
           </form>
@@ -70,4 +79,5 @@ function AddNewInterview() {
     </div>
   );
 }
+
 export default AddNewInterview;

@@ -35,6 +35,8 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@types/dom-speech-recognition": "^0.0.4",
+    "@types/webspeechapi": "^0.0.29",
     "dotenv": "^17.2.1",
     "drizzle-kit": "^0.31.4",
     "eslint": "^9",

@@ -8,7 +8,7 @@ export default function Home() {
   return (
     <div className="flex flex-col min-h-screen">
       <header className="p-4 flex justify-between items-center bg-white shadow-sm">
-        <h1 className="text-2xl font-bold text-gray-800">AI Interviewer</h1>
+        <h1 className="text-2xl font-bold text-gray-800">AI Mock Interviewer</h1>
         <Link href="/dashboard">
           <Button>Get Started</Button>
         </Link>
