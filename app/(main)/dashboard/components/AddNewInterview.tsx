@@ -13,7 +13,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { useState } from "react";
 import { generateInterview } from "../_actions/interview";
 import { LoaderCircle } from "lucide-react";
-import { InterviewLevel } from "@/types/interview";
 
 function AddNewInterview() {
   const [openDialog, setOpenDialog] = useState(false);

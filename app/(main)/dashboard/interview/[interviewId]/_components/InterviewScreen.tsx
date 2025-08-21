@@ -8,9 +8,13 @@ import { submitFeedback } from '../../../_actions/feedback';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { CodeEditor } from '@/components/ui/code-editor';
-import { Question, AnswerRecord } from '@/types/interview';
+import { Question, AnswerRecord, CodeQuestion } from '@/types/interview';
 
 type InterviewData = typeof interviews.$inferSelect;
+
+function isCodeQuestion(question: Question): question is CodeQuestion {
+  return question.type === 'code';
+}
 
 function InterviewScreen({ interviewData }: { interviewData: InterviewData }) {
   const [questions, setQuestions] = useState<Question[]>([]);
@@ -135,15 +139,20 @@ function InterviewScreen({ interviewData }: { interviewData: InterviewData }) {
       
       if (accumulatedTranscript.trim()) {
         const currentQuestion = questions[activeQuestionIndex];
-        setRecordedAnswers(prev => [...prev, {
+        const answerRecord: AnswerRecord = {
           question: currentQuestion.question,
           userAns: accumulatedTranscript.trim(),
           type: currentQuestion.type,
-          codeLanguage: currentQuestion.type === 'code' ? (currentQuestion as any).language : undefined,
-          originalCode: currentQuestion.type === 'code' ? (currentQuestion as any).codeSnippet : undefined,
-          modifiedCode: currentQuestion.type === 'code' ? codeAnswer : undefined,
           isVoiceAnswer: true,
-        }]);
+        };
+
+        if (isCodeQuestion(currentQuestion)) {
+          answerRecord.codeLanguage = currentQuestion.language;
+          answerRecord.originalCode = currentQuestion.codeSnippet;
+          answerRecord.modifiedCode = codeAnswer;
+        }
+
+        setRecordedAnswers(prev => [...prev, answerRecord]);
       }
     } catch (error) {
       console.error('Error stopping speech recognition:', error);
@@ -154,15 +163,20 @@ function InterviewScreen({ interviewData }: { interviewData: InterviewData }) {
   const handleCodeSubmit = () => {
     if (codeAnswer.trim()) {
       const currentQuestion = questions[activeQuestionIndex];
-      setRecordedAnswers(prev => [...prev, {
+      const answerRecord: AnswerRecord = {
         question: currentQuestion.question,
         userAns: codeAnswer.trim(),
         type: 'code',
-        codeLanguage: (currentQuestion as any).language,
-        originalCode: (currentQuestion as any).codeSnippet,
-        modifiedCode: codeAnswer.trim(),
         isVoiceAnswer: false,
-      }]);
+      };
+
+      if (isCodeQuestion(currentQuestion)) {
+        answerRecord.codeLanguage = currentQuestion.language;
+        answerRecord.originalCode = currentQuestion.codeSnippet;
+        answerRecord.modifiedCode = codeAnswer.trim();
+      }
+
+      setRecordedAnswers(prev => [...prev, answerRecord]);
       setCodeAnswer('');
       setShowCodeEditor(false);
       
@@ -196,6 +210,9 @@ function InterviewScreen({ interviewData }: { interviewData: InterviewData }) {
 
   if (questions.length === 0) return <div>Loading...</div>;
   
+  const currentQuestion = questions[activeQuestionIndex];
+  const currentLanguage = isCodeQuestion(currentQuestion) ? currentQuestion.language : 'javascript';
+  
   return (
     <div className='p-10 flex flex-col'>
       <div className='flex justify-between items-center mb-6'>
@@ -220,7 +237,7 @@ function InterviewScreen({ interviewData }: { interviewData: InterviewData }) {
         <div className='flex flex-col gap-6'>
           <div className='flex items-center gap-4 text-center'>
             <Button onClick={speakQuestion} size="icon" variant="outline" title="Speak/Mute Question"> <Volume2 /> </Button>
-            <h2 className='text-2xl font-bold'>{questions[activeQuestionIndex]?.question}</h2>
+            <h2 className='text-2xl font-bold'>{currentQuestion?.question}</h2>
           </div>
           
           {showCodeEditor ? (
@@ -228,7 +245,7 @@ function InterviewScreen({ interviewData }: { interviewData: InterviewData }) {
               <CodeEditor
                 value={codeAnswer}
                 onChange={setCodeAnswer}
-                language={(questions[activeQuestionIndex] as any)?.language || 'javascript'}
+                language={currentLanguage}
                 placeholder="Write your code solution here..."
               />
               <div className='flex gap-4'>
@@ -263,7 +280,7 @@ function InterviewScreen({ interviewData }: { interviewData: InterviewData }) {
                   </Button>
                 )}
 
-                {questions[activeQuestionIndex]?.type === 'code' && (
+                {currentQuestion?.type === 'code' && (
                   <Button 
                     onClick={() => setShowCodeEditor(true)}
                     variant="outline"
