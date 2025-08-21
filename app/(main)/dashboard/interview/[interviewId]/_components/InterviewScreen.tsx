@@ -2,21 +2,13 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { interviews } from '@/utils/schema';
 import { Button } from '@/components/ui/button';
-import { Mic, MicOff, Volume2, ArrowLeft } from 'lucide-react';
+import { Mic, MicOff, Volume2, ArrowLeft, Code } from 'lucide-react';
 import { toast } from 'sonner';
 import { submitFeedback } from '../../../_actions/feedback';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-
-type Question = {
-  question: string;
-  answer: string;
-};
-
-type AnswerRecord = {
-  question: string;
-  userAns: string;
-}
+import { CodeEditor } from '@/components/ui/code-editor';
+import { Question, AnswerRecord } from '@/types/interview';
 
 type InterviewData = typeof interviews.$inferSelect;
 
@@ -24,7 +16,10 @@ function InterviewScreen({ interviewData }: { interviewData: InterviewData }) {
   const [questions, setQuestions] = useState<Question[]>([]);
   const [activeQuestionIndex, setActiveQuestionIndex] = useState(0);
   const [userAnswer, setUserAnswer] = useState('');
+  const [accumulatedTranscript, setAccumulatedTranscript] = useState('');
   const [recordedAnswers, setRecordedAnswers] = useState<AnswerRecord[]>([]);
+  const [showCodeEditor, setShowCodeEditor] = useState(false);
+  const [codeAnswer, setCodeAnswer] = useState('');
   const [listening, setListening] = useState(false);
   const [loading, setLoading] = useState(false);
   const recognitionRef = useRef<SpeechRecognition | null>(null);
@@ -59,7 +54,6 @@ function InterviewScreen({ interviewData }: { interviewData: InterviewData }) {
         return;
       }
 
-      // Check if microphone permission is available
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
         toast.error('Microphone access is not supported in your browser.');
         return;
@@ -72,23 +66,19 @@ function InterviewScreen({ interviewData }: { interviewData: InterviewData }) {
 
       recognitionRef.current.onstart = () => { 
         setListening(true); 
-        setUserAnswer(''); 
       };
       
       recognitionRef.current.onresult = (event: SpeechRecognitionEvent) => {
-        let finalTranscript = '';
-        let interimTranscript = '';
+        let newTranscript = '';
 
         for (let i = event.resultIndex; i < event.results.length; i++) {
           const transcript = event.results[i][0].transcript;
-          if (event.results[i].isFinal) {
-            finalTranscript += transcript;
-          } else {
-            interimTranscript += transcript;
-          }
+          newTranscript += transcript + ' ';
         }
-        
-        setUserAnswer(finalTranscript || interimTranscript);
+
+        const updatedTranscript = (accumulatedTranscript + newTranscript).trim();
+        setAccumulatedTranscript(updatedTranscript);
+        setUserAnswer(updatedTranscript);
       };
 
       recognitionRef.current.onerror = (event: SpeechRecognitionErrorEvent) => {
@@ -121,7 +111,6 @@ function InterviewScreen({ interviewData }: { interviewData: InterviewData }) {
         setListening(false); 
       };
 
-      // Request microphone permission and start recognition
       navigator.mediaDevices.getUserMedia({ audio: true })
         .then(() => {
           recognitionRef.current?.start();
@@ -144,10 +133,16 @@ function InterviewScreen({ interviewData }: { interviewData: InterviewData }) {
       }
       setListening(false);
       
-      if (userAnswer.trim()) {
+      if (accumulatedTranscript.trim()) {
+        const currentQuestion = questions[activeQuestionIndex];
         setRecordedAnswers(prev => [...prev, {
-          question: questions[activeQuestionIndex].question,
-          userAns: userAnswer.trim(),
+          question: currentQuestion.question,
+          userAns: accumulatedTranscript.trim(),
+          type: currentQuestion.type,
+          codeLanguage: currentQuestion.type === 'code' ? (currentQuestion as any).language : undefined,
+          originalCode: currentQuestion.type === 'code' ? (currentQuestion as any).codeSnippet : undefined,
+          modifiedCode: currentQuestion.type === 'code' ? codeAnswer : undefined,
+          isVoiceAnswer: true,
         }]);
       }
     } catch (error) {
@@ -156,10 +151,36 @@ function InterviewScreen({ interviewData }: { interviewData: InterviewData }) {
     }
   };
   
+  const handleCodeSubmit = () => {
+    if (codeAnswer.trim()) {
+      const currentQuestion = questions[activeQuestionIndex];
+      setRecordedAnswers(prev => [...prev, {
+        question: currentQuestion.question,
+        userAns: codeAnswer.trim(),
+        type: 'code',
+        codeLanguage: (currentQuestion as any).language,
+        originalCode: (currentQuestion as any).codeSnippet,
+        modifiedCode: codeAnswer.trim(),
+        isVoiceAnswer: false,
+      }]);
+      setCodeAnswer('');
+      setShowCodeEditor(false);
+      
+      if (activeQuestionIndex < questions.length - 1) {
+        setActiveQuestionIndex(activeQuestionIndex + 1);
+        setUserAnswer('');
+        setAccumulatedTranscript('');
+      }
+    }
+  };
+
   const handleNextOrSubmit = async () => {
     if (activeQuestionIndex < questions.length - 1) {
       setActiveQuestionIndex(activeQuestionIndex + 1);
       setUserAnswer(''); 
+      setAccumulatedTranscript('');
+      setShowCodeEditor(false);
+      setCodeAnswer('');
     } else {
       setLoading(true);
       const result = await submitFeedback(recordedAnswers, interviewData.mockId);
@@ -187,7 +208,7 @@ function InterviewScreen({ interviewData }: { interviewData: InterviewData }) {
       <div className='grid grid-cols-1 md:grid-cols-2 gap-10'>
         <div className='flex flex-col gap-4'>
             <h2 className='font-bold text-lg'>Questions ({activeQuestionIndex + 1}/{questions.length})</h2>
-            <div className='p-4 border rounded-lg space-y-4 h-full'>
+            <div className='p-4 border rounded-lg space-y-4 h-full overflow-y-auto max-h-96'>
                 {questions.map((q, index) => (
                     <div key={index} className={`p-2 rounded-md cursor-pointer ${activeQuestionIndex === index ? 'bg-blue-100 text-blue-700' : 'bg-gray-100'}`}>
                         {index + 1}. {q.question}
@@ -196,27 +217,85 @@ function InterviewScreen({ interviewData }: { interviewData: InterviewData }) {
             </div>
         </div>
 
-        <div className='flex flex-col items-center justify-center gap-6'>
+        <div className='flex flex-col gap-6'>
           <div className='flex items-center gap-4 text-center'>
             <Button onClick={speakQuestion} size="icon" variant="outline" title="Speak/Mute Question"> <Volume2 /> </Button>
             <h2 className='text-2xl font-bold'>{questions[activeQuestionIndex]?.question}</h2>
           </div>
           
-          <div className='w-full h-60 p-4 border rounded-lg bg-gray-50 overflow-y-auto'>
-              {userAnswer || 'Your transcribed answer will appear here...'}
-          </div>
+          {showCodeEditor ? (
+            <div className='w-full space-y-4'>
+              <CodeEditor
+                value={codeAnswer}
+                onChange={setCodeAnswer}
+                language={(questions[activeQuestionIndex] as any)?.language || 'javascript'}
+                placeholder="Write your code solution here..."
+              />
+              <div className='flex gap-4'>
+                <Button 
+                  onClick={() => setShowCodeEditor(false)}
+                  variant="outline"
+                >
+                  Back to Text
+                </Button>
+                <Button 
+                  onClick={handleCodeSubmit}
+                  disabled={!codeAnswer.trim()}
+                >
+                  Submit Code
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <>
+              <div className='w-full h-60 p-4 border rounded-lg bg-gray-50 overflow-y-auto'>
+                {userAnswer || 'Your transcribed answer will appear here...'}
+              </div>
 
-          <div className='flex gap-4'>
-            {listening ? (
-              <Button onClick={stopListening} className="bg-red-500 hover:bg-red-600"> <MicOff className="mr-2" /> Stop Recording </Button>
-            ) : (
-              <Button onClick={startListening}> <Mic className="mr-2" /> Record Answer </Button>
-            )}
+              <div className='flex gap-4 flex-wrap'>
+                {listening ? (
+                  <Button onClick={stopListening} className="bg-red-500 hover:bg-red-600"> 
+                    <MicOff className="mr-2" /> Stop Recording 
+                  </Button>
+                ) : (
+                  <Button onClick={startListening}> 
+                    <Mic className="mr-2" /> Record Answer 
+                  </Button>
+                )}
 
-            <Button onClick={handleNextOrSubmit} disabled={!userAnswer || loading}>
-                {loading ? 'Submitting...' : activeQuestionIndex === questions.length - 1 ? 'Finish & Get Feedback' : 'Next Question'}
-            </Button>
-          </div>
+                {questions[activeQuestionIndex]?.type === 'code' && (
+                  <Button 
+                    onClick={() => setShowCodeEditor(true)}
+                    variant="outline"
+                    className="bg-blue-100 text-blue-700 hover:bg-blue-200"
+                  >
+                    <Code className="mr-2" size={16} /> Code Editor
+                  </Button>
+                )}
+
+                {!listening && accumulatedTranscript && (
+                  <Button 
+                    onClick={() => {
+                      setAccumulatedTranscript('');
+                      setUserAnswer('');
+                    }} 
+                    variant="outline"
+                    className="text-red-500 border-red-300 hover:bg-red-50"
+                  >
+                    Clear Answer
+                  </Button>
+                )}
+
+                <Button 
+                  onClick={handleNextOrSubmit} 
+                  disabled={(!userAnswer && !showCodeEditor) || loading}
+                  className="ml-auto"
+                >
+                  {loading ? 'Submitting...' : activeQuestionIndex === questions.length - 1 ? 'Finish & Get Feedback' : 'Next Question'}
+                </Button>
+              </div>
+            </>
+          )}
         </div>
       </div>
     </div>

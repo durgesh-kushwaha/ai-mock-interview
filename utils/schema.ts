@@ -20,4 +20,8 @@ export const userAnswers = pgTable('user_answers', {
     rating: varchar('rating'),
     userEmail: varchar('user_email'),
     createdAt: varchar('created_at'),
+    answerType: varchar('answer_type'),
+    originalCode: text('original_code'),
+    modifiedCode: text('modified_code'),
+    codeLanguage: varchar('code_language'),
 });

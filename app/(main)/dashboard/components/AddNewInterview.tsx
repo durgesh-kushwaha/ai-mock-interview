@@ -13,6 +13,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useState } from "react";
 import { generateInterview } from "../_actions/interview";
 import { LoaderCircle } from "lucide-react";
+import { InterviewLevel } from "@/types/interview";
 
 function AddNewInterview() {
   const [openDialog, setOpenDialog] = useState(false);
@@ -57,6 +58,22 @@ function AddNewInterview() {
               <div>
                 <label className="font-bold">Years of Experience</label>
                 <Input name="jobExperience" className="mt-1" placeholder="e.g., 5" type="number" max="50" required />
+              </div>
+              <div>
+                <label className="font-bold">Interview Level (Optional)</label>
+                <select 
+                  name="interviewLevel" 
+                  className="w-full mt-1 p-2 border rounded-md bg-background"
+                  defaultValue="auto"
+                >
+                  <option value="auto">Auto-detect based on experience</option>
+                  <option value="beginner">Beginner (5-8 questions)</option>
+                  <option value="intermediate">Intermediate (8-12 questions)</option>
+                  <option value="advanced">Advanced (10-15 questions)</option>
+                </select>
+                <p className="text-sm text-gray-500 mt-1">
+                  Leave as "Auto-detect" to let AI determine the appropriate level based on your experience
+                </p>
               </div>
             </div>
             <div className="flex gap-5 justify-end mt-6">

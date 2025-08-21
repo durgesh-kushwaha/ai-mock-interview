@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { interviews } from '@/utils/schema';
 import { useRouter } from 'next/navigation';
 import React, { useState } from 'react';
-import { LoaderCircle, Trash2 } from 'lucide-react';
+import { LoaderCircle, Trash2, RotateCcw } from 'lucide-react';
 import {
     AlertDialog,
     AlertDialogAction,
@@ -17,13 +17,14 @@ import {
     AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 import { toast } from 'sonner';
-import { deleteInterview } from '../_actions/interview';
+import { deleteInterview, retakeInterview } from '../_actions/interview';
 
 type Interview = typeof interviews.$inferSelect;
 
 function InterviewCard({ interview }: { interview: Interview }) {
     const [loading, setLoading] = useState(false);
     const [deleteLoading, setDeleteLoading] = useState(false);
+    const [retakeLoading, setRetakeLoading] = useState(false);
     const router = useRouter();
 
     const onViewFeedback = () => {
@@ -44,6 +45,22 @@ function InterviewCard({ interview }: { interview: Interview }) {
             toast.error("An unexpected error occurred.");
         }
         setDeleteLoading(false);
+    };
+
+    const onRetake = async () => {
+        setRetakeLoading(true);
+        try {
+            const result = await retakeInterview(interview.mockId);
+            if (result.success && result.newMockId) {
+                toast.success("New interview created! Redirecting...");
+                router.push(`/dashboard/interview/${result.newMockId}`);
+            } else {
+                toast.error(result.error || "Failed to create new interview.");
+            }
+        } catch {
+            toast.error("An unexpected error occurred.");
+        }
+        setRetakeLoading(false);
     };
 
     return (
@@ -77,8 +94,21 @@ function InterviewCard({ interview }: { interview: Interview }) {
             </div>
             
             <div className='flex flex-col mt-4 gap-2'>
-                <Button size="lg" variant="outline" className="w-full cursor-pointer">
-                    Retake
+                <Button 
+                    size="lg" 
+                    variant="outline" 
+                    className="w-full cursor-pointer flex items-center justify-center gap-2"
+                    onClick={onRetake}
+                    disabled={retakeLoading}
+                >
+                    {retakeLoading ? (
+                        <LoaderCircle className='animate-spin h-5 w-5' />
+                    ) : (
+                        <>
+                            <RotateCcw className="h-4 w-4" />
+                            Retake
+                        </>
+                    )}
                 </Button>
                 <Button size="lg" className="w-full cursor-pointer" onClick={onViewFeedback} disabled={loading}>
                     {loading ? <LoaderCircle className='animate-spin h-5 w-5' /> : 'View Feedback'}

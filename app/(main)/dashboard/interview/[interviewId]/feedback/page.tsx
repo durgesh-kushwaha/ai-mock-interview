@@ -19,6 +19,7 @@ import {
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
+import { CodeEditor } from '@/components/ui/code-editor';
 
 interface FeedbackPageProps {
     params: Promise<{
@@ -27,8 +28,13 @@ interface FeedbackPageProps {
 }
 
 type ModelAnswer = {
-    question: string;
-    answer: string;
+  type: 'text' | 'code';
+  question: string;
+  answer: string;
+  codeSnippet?: string;
+  language?: string;
+  instructions?: string;
+  expectedOutput?: string;
 };
 
 async function FeedbackPage({ params }: FeedbackPageProps) {
@@ -76,7 +82,7 @@ async function FeedbackPage({ params }: FeedbackPageProps) {
                         <CardTitle>Overall Rating</CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <h2 className='text-6xl font-bold text-green-500'>{avgRating}/5</h2>
+                        <h2 className='text-6xl font-bold text-green-500'>{avgRating}/10</h2>
                         <p className='text-sm text-center text-gray-500'>Based on AI feedback</p>
                     </CardContent>
                 </Card>
@@ -95,16 +101,66 @@ async function FeedbackPage({ params }: FeedbackPageProps) {
                             <Card className='bg-gray-50'>
                                 <CardHeader className='flex-row justify-between items-center gap-4'>
                                     <CardTitle className='text-lg'>Your Answer</CardTitle>
-                                    <p className={`text-sm font-bold p-2 px-3 rounded-lg ${parseInt(item.rating || '0') > 3 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-                                        Rating: {item.rating}/5
+                                    <p className={`text-sm font-bold p-2 px-3 rounded-lg ${parseInt(item.rating || '0') > 6 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                                        Rating: {item.rating}/10
                                     </p>
                                 </CardHeader>
                                 <CardContent>
-                                    <p className='mb-4'>{item.userAns}</p>
+                                    {item.answerType === 'code' && item.modifiedCode ? (
+                                        <div className='mb-4 space-y-4'>
+                                            <div>
+                                                <h4 className='text-sm font-bold mb-2'>Your Code Solution:</h4>
+                                                <CodeEditor
+                                                    value={item.modifiedCode || ''}
+                                                    language={item.codeLanguage || 'javascript'}
+                                                    readOnly={true}
+                                                    className="mb-2"
+                                                />
+                                            </div>
+                                            {item.originalCode && (
+                                                <div>
+                                                    <h4 className='text-sm font-bold mb-2'>Original Code:</h4>
+                                                    <CodeEditor
+                                                        value={item.originalCode || ''}
+                                                        language={item.codeLanguage || 'javascript'}
+                                                        readOnly={true}
+                                                        className="mb-2"
+                                                    />
+                                                </div>
+                                            )}
+                                        </div>
+                                    ) : item.answerType === 'voice' ? (
+                                        <div className='mb-4'>
+                                            <h4 className='text-sm font-bold mb-2'>Voice Answer:</h4>
+                                            <p className='italic text-gray-700'>{item.userAns}</p>
+                                        </div>
+                                    ) : (
+                                        <p className='mb-4'>{item.userAns}</p>
+                                    )}
+                                    
                                     <h3 className='text-md font-bold text-green-700'>AI Feedback:</h3>
                                     <p className='mb-4'>{item.feedback}</p>
+                                    
                                     <h3 className='text-md font-bold text-blue-700'>Model Answer:</h3>
-                                    <p>{modelAnswers[index]?.answer || 'No model answer available.'}</p>
+                                    {modelAnswers[index]?.codeSnippet ? (
+                                        <div className='space-y-2'>
+                                            <div>
+                                                <h4 className='text-sm font-bold mb-2'>Code Snippet:</h4>
+                                                <CodeEditor
+                                                    value={modelAnswers[index]?.codeSnippet || ''}
+                                                    language={modelAnswers[index]?.language || 'javascript'}
+                                                    readOnly={true}
+                                                    className="mb-2"
+                                                />
+                                            </div>
+                                            <p>{modelAnswers[index]?.answer || 'No model answer available.'}</p>
+                                            {modelAnswers[index]?.instructions && (
+                                                <p className='text-sm text-gray-600'><strong>Instructions:</strong> {modelAnswers[index]?.instructions}</p>
+                                            )}
+                                        </div>
+                                    ) : (
+                                        <p>{modelAnswers[index]?.answer || 'No model answer available.'}</p>
+                                    )}
                                 </CardContent>
                             </Card>
                         </AccordionContent>

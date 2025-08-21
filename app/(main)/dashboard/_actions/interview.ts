@@ -6,6 +6,7 @@ import { interviews, userAnswers } from "@/utils/schema";
 import { redirect } from "next/navigation";
 import { and, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
+import { InterviewLevel, generateRandomQuestionCount, predictInterviewLevel } from "@/types/interview";
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
 const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
@@ -14,21 +15,57 @@ export async function generateInterview(formData: FormData) {
   const jobPosition = formData.get("jobPosition") as string;
   const jobDesc = formData.get("jobDesc") as string;
   const jobExperience = formData.get("jobExperience") as string;
+  const userSelectedLevel = formData.get("interviewLevel") as InterviewLevel | 'auto' | null;
 
   const user = await currentUser();
   if (!user) {
     return { error: "User not authenticated" };
   }
 
+  const interviewLevel = userSelectedLevel && userSelectedLevel !== 'auto' 
+    ? userSelectedLevel as InterviewLevel
+    : predictInterviewLevel(jobPosition, jobDesc, jobExperience);
+
+  const questionCount = generateRandomQuestionCount(interviewLevel);
+
   const prompt = `
     Job Position: ${jobPosition}
     Job Description: ${jobDesc}
     Years of Experience: ${jobExperience}
 
-    Based on the information above, please generate 5 interview questions and answers in JSON format. 
-    Each question and answer should be in a separate object within a JSON array. 
-    The JSON should be an array of objects, where each object has a "question" key and an "answer" key.
-    Do not include any other text or markdown formatting outside of the JSON array.
+    Based on the information above, please generate ${questionCount} interview questions in JSON format.
+    
+    The questions should be a mix of:
+    1. Text-based questions (conceptual, behavioral, technical knowledge)
+    2. Code-based questions (programming problems, code review, debugging)
+
+    For text questions, use this format:
+    {
+      "type": "text",
+      "question": "Question text here",
+      "answer": "Expected answer here"
+    }
+
+    For code questions, use this format:
+    {
+      "type": "code",
+      "question": "Programming problem description",
+      "codeSnippet": "Initial code snippet that is either incomplete, contains bugs, or needs optimization",
+      "language": "javascript/typescript/python/java/etc",
+      "instructions": "What the candidate should do with the code (e.g., fix bugs, complete the function, optimize)",
+      "expectedOutput": "Optional: expected output or behavior"
+    }
+
+    For code questions, ensure the code snippet has at least one of these characteristics:
+    - Contains logical bugs or syntax errors
+    - Is incomplete and needs to be finished
+    - Has performance issues that need optimization
+    - Lacks proper error handling
+    - Needs refactoring for better code quality
+
+    Include approximately 30% code questions for technical roles, fewer for non-technical roles.
+
+    Return a JSON array of these question objects. Do not include any other text or markdown formatting outside of the JSON array.
   `;
 
   let jsonResponse;
@@ -108,16 +145,40 @@ export async function retakeInterview(mockId: string) {
     }
 
     const { jobPosition, jobDesc, jobExperience } = originalInterview[0];
+    
+    const questionCount = generateRandomQuestionCount('intermediate');
 
     const prompt = `
         Job Position: ${jobPosition}
         Job Description: ${jobDesc}
         Years of Experience: ${jobExperience}
 
-        Based on the information above, please generate 5 fresh interview questions and answers in JSON format.
-        Each question and answer should be in a separate object within a JSON array.
-        The JSON should be an array of objects, where each object has a "question" key and an "answer" key.
-        Do not include any other text or markdown formatting outside of the JSON array.
+        Based on the information above, please generate ${questionCount} fresh interview questions in JSON format.
+        
+        The questions should be a mix of:
+        1. Text-based questions (conceptual, behavioral, technical knowledge)
+        2. Code-based questions (programming problems, code review, debugging)
+
+        For text questions, use this format:
+        {
+          "type": "text",
+          "question": "Question text here",
+          "answer": "Expected answer here"
+        }
+
+        For code questions, use this format:
+        {
+          "type": "code",
+          "question": "Programming problem description",
+          "codeSnippet": "Initial code snippet (can be incomplete or with bugs)",
+          "language": "javascript/typescript/python/java/etc",
+          "instructions": "What the candidate should do with the code",
+          "expectedOutput": "Optional: expected output or behavior"
+        }
+
+        Include approximately 30% code questions for technical roles, fewer for non-technical roles.
+
+        Return a JSON array of these question objects. Do not include any other text or markdown formatting outside of the JSON array.
     `;
 
     let jsonResponse;
