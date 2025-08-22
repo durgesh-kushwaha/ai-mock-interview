@@ -31,8 +31,43 @@ function InterviewScreen({ interviewData }: { interviewData: InterviewData }) {
 
   useEffect(() => {
     if (interviewData?.jsonMockResp) {
-      const parsedQuestions: Question[] = JSON.parse(interviewData.jsonMockResp);
-      setQuestions(parsedQuestions);
+      try {
+        const parsedQuestions: Question[] = JSON.parse(interviewData.jsonMockResp);
+        
+        // Validate that we got an array of questions
+        if (Array.isArray(parsedQuestions) && parsedQuestions.length > 0) {
+          setQuestions(parsedQuestions);
+        } else {
+          console.error("Parsed questions is not a valid array:", parsedQuestions);
+          toast.error("Failed to load interview questions. Please try creating a new interview.");
+          setQuestions([]);
+        }
+      } catch (error) {
+        console.error("Failed to parse interview questions JSON:", error);
+        console.error("Raw JSON string:", interviewData.jsonMockResp);
+        
+        // Try to clean and parse again as a fallback
+        try {
+          // Attempt to clean malformed JSON
+          const cleanedJson = interviewData.jsonMockResp
+            .replace(/^```(?:json)?\s*/gim, '')
+            .replace(/\s*```$/gim, '')
+            .replace(/`/g, '')
+            .trim();
+          
+          const parsedQuestions: Question[] = JSON.parse(cleanedJson);
+          if (Array.isArray(parsedQuestions) && parsedQuestions.length > 0) {
+            setQuestions(parsedQuestions);
+            console.log("Successfully parsed questions using fallback cleaning");
+          } else {
+            throw new Error("Cleaned JSON is not a valid array");
+          }
+        } catch (fallbackError) {
+          console.error("Fallback parsing also failed:", fallbackError);
+          toast.error("Failed to load interview questions due to invalid data. Please create a new interview.");
+          setQuestions([]);
+        }
+      }
     }
   }, [interviewData]);
 

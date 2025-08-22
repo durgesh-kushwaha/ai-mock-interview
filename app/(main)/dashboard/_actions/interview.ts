@@ -1,8 +1,8 @@
 "use server";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { currentUser } from "@clerk/nextjs/server";
-import { db } from "@/utils/db";
-import { interviews, userAnswers } from "@/utils/schema";
+import { db, handleDatabaseError, DatabaseError } from "@/utils/db";
+import { interviews, userAnswers, type Interview } from "@/utils/schema";
 import { redirect } from "next/navigation";
 import { and, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
@@ -73,8 +73,49 @@ export async function generateInterview(formData: FormData) {
     const result = await model.generateContent(prompt);
     const response = await result.response;
     const text = response.text();
-    const cleanedText = text.replace(/```json|```/g, "").trim();
-    jsonResponse = cleanedText;
+    
+    // More careful cleaning that preserves JSON structure
+    let cleanedText = text.trim();
+    
+    // Remove markdown code block wrappers
+    if (cleanedText.startsWith('```json')) {
+      cleanedText = cleanedText.replace(/^```json\s*/, '');
+    } else if (cleanedText.startsWith('```')) {
+      cleanedText = cleanedText.replace(/^```\s*/, '');
+    }
+    
+    if (cleanedText.endsWith('```')) {
+      cleanedText = cleanedText.replace(/\s*```$/, '');
+    }
+    
+    // Remove any remaining backticks that might be inside the JSON (but be careful not to break the structure)
+    // Only remove backticks that are not part of valid JSON
+    cleanedText = cleanedText.trim();
+    
+    // Validate if the cleaned text is valid JSON
+    try {
+      const parsed = JSON.parse(cleanedText);
+      jsonResponse = cleanedText;
+    } catch (parseError) {
+      console.error("Failed to parse AI response as JSON:", parseError);
+      console.error("Raw AI response:", text);
+      console.error("Cleaned text:", cleanedText);
+      
+      // Fallback: try to extract JSON from the text using a more aggressive approach
+      const jsonMatch = text.match(/\[[\s\S]*\]|\{[\s\S]*\}/);
+      if (jsonMatch) {
+        try {
+          const parsedFallback = JSON.parse(jsonMatch[0]);
+          jsonResponse = jsonMatch[0];
+          console.log("Successfully extracted JSON using fallback method");
+        } catch (fallbackError) {
+          console.error("Fallback JSON extraction also failed:", fallbackError);
+          throw new Error("Failed to generate valid JSON questions from AI response");
+        }
+      } else {
+        throw new Error("No valid JSON found in AI response");
+      }
+    }
   } catch (error) {
     console.error("Gemini API call failed:", error);
     return { error: "Failed to generate interview questions." };
@@ -90,7 +131,7 @@ export async function generateInterview(formData: FormData) {
       jobDesc,
       jobExperience,
       createdBy: user.primaryEmailAddress!.emailAddress,
-      createdAt: new Date().toISOString(),
+      createdAt: new Date().toISOString(), // Explicitly provide timestamp
     });
   } catch (error) {
     console.error("Database insertion failed:", error);
@@ -107,25 +148,32 @@ export async function deleteInterview(mockId: string) {
     }
 
     try {
-        const interview = await db.select().from(interviews)
+        // Check if interview exists and user has permission
+        const interview = await db.select()
+            .from(interviews)
             .where(and(
                 eq(interviews.mockId, mockId),
                 eq(interviews.createdBy, user.primaryEmailAddress!.emailAddress)
-            ));
+            ))
+            .limit(1);
 
         if (interview.length === 0) {
-            return { error: "Interview not found or you do not have permission to delete it." };
+            throw new Error("Interview not found or you do not have permission to delete it.");
         }
 
-        await db.delete(userAnswers).where(eq(userAnswers.mockIdRef, mockId));
+        // Delete related user answers first
+        await db.delete(userAnswers).where(eq(userAnswers.mockId, mockId));
 
+        // Delete the interview
         await db.delete(interviews).where(eq(interviews.mockId, mockId));
 
         revalidatePath('/dashboard');
-
         return { success: true };
     } catch (error) {
         console.error("Failed to delete interview:", error);
+        if (error instanceof Error) {
+            return { error: error.message };
+        }
         return { error: "Database error: Could not delete the interview." };
     }
 }
@@ -185,7 +233,50 @@ export async function retakeInterview(mockId: string) {
     try {
         const result = await model.generateContent(prompt);
         const response = await result.response;
-        jsonResponse = response.text().replace(/```json|```/g, "").trim();
+        const text = response.text();
+        
+        // Use the same improved cleaning logic as generateInterview
+        let cleanedText = text.trim();
+        
+        // Remove markdown code block wrappers
+        if (cleanedText.startsWith('```json')) {
+          cleanedText = cleanedText.replace(/^```json\s*/, '');
+        } else if (cleanedText.startsWith('```')) {
+          cleanedText = cleanedText.replace(/^```\s*/, '');
+        }
+        
+        if (cleanedText.endsWith('```')) {
+          cleanedText = cleanedText.replace(/\s*```$/, '');
+        }
+        
+        // Remove any remaining backticks that might be inside the JSON (but be careful not to break the structure)
+        // Only remove backticks that are not part of valid JSON
+        cleanedText = cleanedText.trim();
+        
+        // Validate if the cleaned text is valid JSON
+        try {
+          const parsed = JSON.parse(cleanedText);
+          jsonResponse = cleanedText;
+        } catch (parseError) {
+          console.error("Failed to parse AI response as JSON in retake:", parseError);
+          console.error("Raw AI response:", text);
+          console.error("Cleaned text:", cleanedText);
+          
+          // Fallback: try to extract JSON from the text using a more aggressive approach
+          const jsonMatch = text.match(/\[[\s\S]*\]|\{[\s\S]*\}/);
+          if (jsonMatch) {
+            try {
+              const parsedFallback = JSON.parse(jsonMatch[0]);
+              jsonResponse = jsonMatch[0];
+              console.log("Successfully extracted JSON using fallback method in retake");
+            } catch (fallbackError) {
+              console.error("Fallback JSON extraction also failed in retake:", fallbackError);
+              throw new Error("Failed to generate valid JSON questions from AI response for retake");
+            }
+          } else {
+            throw new Error("No valid JSON found in AI response for retake");
+          }
+        }
     } catch (error) {
         console.error("Gemini API call failed for retake:", error);
         return { error: "Failed to generate new interview questions." };
@@ -200,7 +291,7 @@ export async function retakeInterview(mockId: string) {
             jobDesc,
             jobExperience,
             createdBy: user.primaryEmailAddress!.emailAddress,
-            createdAt: new Date().toISOString(),
+            createdAt: new Date().toISOString(), // Explicitly provide timestamp
         });
     } catch (error) {
         console.error("Database insertion failed for retake:", error);

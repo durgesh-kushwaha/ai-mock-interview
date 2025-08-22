@@ -57,13 +57,13 @@ export async function submitFeedback(
       const feedbackJson = JSON.parse(cleanedText);
 
       await db.insert(userAnswers).values({
-        mockIdRef: interviewId,
+        mockId: interviewId,
         question: item.question,
         userAns: item.userAns,
         feedback: feedbackJson.feedback,
-        rating: feedbackJson.rating.toString(),
+        rating: feedbackJson.rating ? parseInt(feedbackJson.rating) : null,
         userEmail: user.primaryEmailAddress!.emailAddress,
-        createdAt: new Date().toISOString(),
+        createdAt: new Date().toISOString(), // Explicitly provide timestamp
         answerType: item.isVoiceAnswer ? 'voice' : (item.type === 'code' ? 'code' : 'text'),
         originalCode: item.originalCode,
         modifiedCode: item.modifiedCode,
