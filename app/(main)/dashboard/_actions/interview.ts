@@ -1,8 +1,8 @@
 "use server";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { currentUser } from "@clerk/nextjs/server";
-import { db, handleDatabaseError, DatabaseError } from "@/utils/db";
-import { interviews, userAnswers, type Interview } from "@/utils/schema";
+import { db } from "@/utils/db";
+import { interviews, userAnswers } from "@/utils/schema";
 import { redirect } from "next/navigation";
 import { and, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
@@ -94,7 +94,7 @@ export async function generateInterview(formData: FormData) {
     
     // Validate if the cleaned text is valid JSON
     try {
-      const parsed = JSON.parse(cleanedText);
+      JSON.parse(cleanedText);
       jsonResponse = cleanedText;
     } catch (parseError) {
       console.error("Failed to parse AI response as JSON:", parseError);
@@ -105,7 +105,7 @@ export async function generateInterview(formData: FormData) {
       const jsonMatch = text.match(/\[[\s\S]*\]|\{[\s\S]*\}/);
       if (jsonMatch) {
         try {
-          const parsedFallback = JSON.parse(jsonMatch[0]);
+          JSON.parse(jsonMatch[0]);
           jsonResponse = jsonMatch[0];
           console.log("Successfully extracted JSON using fallback method");
         } catch (fallbackError) {
@@ -255,7 +255,7 @@ export async function retakeInterview(mockId: string) {
         
         // Validate if the cleaned text is valid JSON
         try {
-          const parsed = JSON.parse(cleanedText);
+          JSON.parse(cleanedText);
           jsonResponse = cleanedText;
         } catch (parseError) {
           console.error("Failed to parse AI response as JSON in retake:", parseError);
@@ -266,7 +266,7 @@ export async function retakeInterview(mockId: string) {
           const jsonMatch = text.match(/\[[\s\S]*\]|\{[\s\S]*\}/);
           if (jsonMatch) {
             try {
-              const parsedFallback = JSON.parse(jsonMatch[0]);
+              JSON.parse(jsonMatch[0]);
               jsonResponse = jsonMatch[0];
               console.log("Successfully extracted JSON using fallback method in retake");
             } catch (fallbackError) {

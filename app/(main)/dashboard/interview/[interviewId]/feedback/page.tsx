@@ -78,7 +78,7 @@ async function FeedbackPage({ params }: FeedbackPageProps) {
                     <div className='mt-8 text-center'>
                         <div className='p-8 bg-yellow-50 border border-yellow-200 rounded-lg'>
                             <h3 className='text-xl font-semibold text-yellow-800 mb-4'>
-                                This interview hasn't been completed yet
+                                This interview hasn&apos;t been completed yet
                             </h3>
                             <p className='text-yellow-700 mb-6'>
                                 You need to complete the interview questions and submit your answers to view the feedback.

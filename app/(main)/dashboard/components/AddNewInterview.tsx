@@ -71,7 +71,7 @@ function AddNewInterview() {
                   <option value="advanced">Advanced (10-15 questions)</option>
                 </select>
                 <p className="text-sm text-gray-500 mt-1">
-                  Leave as "Auto-detect" to let AI determine the appropriate level based on your experience
+                  Leave as &quot;Auto-detect&quot; to let AI determine the appropriate level based on your experience
                 </p>
               </div>
             </div>
